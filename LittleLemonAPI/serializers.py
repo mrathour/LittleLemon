@@ -101,8 +101,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     
-    class meta:
-        User = get_user_model
+    class Meta:
+        User = get_user_model()
         model = User
-        fields = ['username','email','name']
+        fields = ['id', 'username','email']
     

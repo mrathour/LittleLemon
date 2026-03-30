@@ -21,6 +21,6 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('djoser.urls')),
-    path('', include('djoser.urls.authtoken')),
+    path('', include('djoser.urls.authtoken')), #Intentional , Check Project requirement
     path('api/', include('LittleLemonAPI.urls')),
 ]

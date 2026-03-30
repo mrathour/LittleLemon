@@ -9,10 +9,14 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 User = get_user_model()
 
+from rest_framework.filters import OrderingFilter, SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
+
 from .models import MenuItem, Cart, Order, OrderItem
 from .serializers import MenuItemSerializer, CartSerializer, OrderSerializer, UserSerializer
 from .permissions import IsManagerOrReadOnly, IsCustomer, IsDeliveryCrew, IsManager
 from .services import OrderService
+from .paginations import MenuItemPagination, OrderPagination
 
 # Create your views here.
 
@@ -20,9 +24,15 @@ class MenuItemViewSet(ModelViewSet):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     permission_classes = [IsManagerOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    pagination_class = MenuItemPagination
+    search_fields = ['title']
+    filterset_fields = ['featured', 'category']
+    ordering_fields = ['price']
 
 class CartsView(APIView):
     permission_classes = [IsCustomer]
+    
 
     def get(self, request):
         cart_items = Cart.objects.filter(user = request.user)
@@ -63,6 +73,12 @@ class CartsView(APIView):
 
 class OrderViewSet(ModelViewSet):
     serializer_class = OrderSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    pagination_class = OrderPagination
+    search_fields = ['user__username', 'delivery_crew__username']
+    filterset_fields = ['status']
+    ordering_fields = ['total', 'date',]
+
 
     def get_permissions(self):
         base_permissions = super().get_permissions()
