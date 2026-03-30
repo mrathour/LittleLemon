@@ -1,14 +1,16 @@
 # views.py
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
-from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import Sum
-from django.db import transaction
+from django.shortcuts import get_object_or_404
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+User = get_user_model()
 
 from .models import MenuItem, Cart, Order, OrderItem
-from .serializers import MenuItemSerializer, CartSerializer, OrderSerializer 
+from .serializers import MenuItemSerializer, CartSerializer, OrderSerializer, UserSerializer
 from .permissions import IsManagerOrReadOnly, IsCustomer, IsDeliveryCrew, IsManager
 from .services import OrderService
 
@@ -104,7 +106,75 @@ class OrderViewSet(ModelViewSet):
         
         return super().partial_update(request, *args, **kwargs)
         
+GROUP_NAME_MAP = {
+    'manager': 'Manager',
+    'delivery-crew': 'Delivery Crew',
+}
 
+class GroupManagementView(APIView):
+    permission_classes = [IsManager]
+
+    def get_group(self, role):
+        group_name = GROUP_NAME_MAP.get(role)
+        if not group_name:
+            return None
+        return get_object_or_404(Group, name=group_name)
+
+    def get(self, request, role):
+        group = self.get_group(role)
+        if not group:
+            return Response(
+                {"error": "Invalid role."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        users = User.objects.filter(groups=group)
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, role):
+        group = self.get_group(role)
+        if not group:
+            return Response(
+                {"error": "Invalid role."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        username = request.data.get('username')
+        user = get_object_or_404(User, username=username)
+
+        if user.groups.filter(name=group.name).exists():
+            return Response(
+                {"error": "User is already in this group."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.groups.add(group)
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, role, pk):
+        group = self.get_group(role)
+        if not group:
+            return Response(
+                {"error": "Invalid role."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        user = get_object_or_404(User, pk=pk)
+
+        if not user.groups.filter(name=group.name).exists():
+            return Response(
+                {"error": "User does not belong to this group."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.groups.remove(group)
+        return Response(
+            {"message": f"{user.username} removed from {group.name}."},
+            status=status.HTTP_200_OK
+        )
+
+
+
+
+
+    
 
 
 

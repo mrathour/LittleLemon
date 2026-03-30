@@ -1,5 +1,6 @@
 # serializers.py
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from .models import MenuItem, Category, Cart, OrderItem, Order
 
 
@@ -97,4 +98,11 @@ class OrderSerializer(serializers.ModelSerializer):
             'date',
             'orderitems'     
         ]
+
+class UserSerializer(serializers.ModelSerializer):
+    
+    class meta:
+        User = get_user_model
+        model = User
+        fields = ['username','email','name']
     
