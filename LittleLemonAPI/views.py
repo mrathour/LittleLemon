@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -23,7 +24,7 @@ from .paginations import MenuItemPagination, OrderPagination
 class MenuItemViewSet(ModelViewSet):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
-    permission_classes = [IsManagerOrReadOnly]
+    permission_classes = [IsAuthenticated, IsManagerOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     pagination_class = MenuItemPagination
     search_fields = ['title']
@@ -31,7 +32,7 @@ class MenuItemViewSet(ModelViewSet):
     ordering_fields = ['price']
 
 class CartsView(APIView):
-    permission_classes = [IsCustomer]
+    permission_classes = [IsAuthenticated, IsCustomer]
     
 
     def get(self, request):
@@ -81,17 +82,14 @@ class OrderViewSet(ModelViewSet):
 
 
     def get_permissions(self):
-        base_permissions = super().get_permissions()
-
-        # Add your custom permissions on top
         if self.action == 'create':
-            return base_permissions + [IsCustomer()]
+            return [IsAuthenticated(), IsCustomer()]
         if self.action in ['update', 'destroy']:
-            return base_permissions + [IsManager()]
+            return [IsAuthenticated(), IsManager()]
         if self.action == 'partial_update':
-            return base_permissions + [IsManager() | IsDeliveryCrew()]
+            return [IsAuthenticated(), IsManager() | IsDeliveryCrew()]
         
-        return base_permissions 
+        return [IsAuthenticated()]
         
     def get_queryset(self):
         if self.request.user.groups.filter(name='Manager').exists():
@@ -128,7 +126,7 @@ GROUP_NAME_MAP = {
 }
 
 class GroupManagementView(APIView):
-    permission_classes = [IsManager]
+    permission_classes = [IsAuthenticated, IsManager]
 
     def get_group(self, role):
         group_name = GROUP_NAME_MAP.get(role)

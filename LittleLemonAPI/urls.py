@@ -5,7 +5,7 @@ from django.urls import path
 
 router = DefaultRouter()
 router.register('menu-items', views.MenuItemViewSet)
-router.register('orders', views.OrderViewSet)
+router.register('orders', views.OrderViewSet, basename='order')
 
 urlpatterns = [
     *router.urls,
